@@ -4,7 +4,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: '',
+  basePath: '/ander507.github.io',
+  assetPrefix: '.',
 }
 
 module.exports = nextConfig
+
