@@ -6,6 +6,7 @@ const nextConfig = {
   },
   basePath: '/ander507.github.io',
   assetPrefix: '.',
+  reactStrictMode: true,
 }
 
 module.exports = nextConfig
