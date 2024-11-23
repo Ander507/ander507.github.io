@@ -4,9 +4,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: '/ander507.github.io',
-  assetPrefix: '.',
-  reactStrictMode: true,
+  basePath: '',
+  trailingSlash: true,
 }
 
 module.exports = nextConfig

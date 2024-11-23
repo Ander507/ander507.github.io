@@ -46,7 +46,7 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 142.4 71.8% 29.2%;
-    --footer-bg: 0 0% 100%;
+    --footer-bg: 220 14% 10%; /* Added footer background color */
   }
 }
 

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import { StartScreen } from "@/components/start-screen"
+import { StartScreen } from "@/components/ui/start-screen"
+
 export default function Portfolio() {
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [currentSection, setCurrentSection] = useState('home')
@@ -78,11 +79,11 @@ export default function Portfolio() {
             <section id="about" className="py-20">
               <h2 className="text-3xl font-bold mb-8 text-center">About Me</h2>
               <p className="max-w-2xl mx-auto text-center mb-8">
-              I am a dedicated developer with experience in C#, Python, HTML, CSS, and JavaScript. Passionate about coding and software development, I am committed to furthering my skills and aspire to become a proficient software engineer.
+                I am a dedicated developer with experience in C#, Python, HTML, CSS, and JavaScript. Passionate about coding and software development, I am committed to furthering my skills and aspire to become a proficient software engineer.
               </p>
-              <div className="flex justify-center space-x-8">
-                {['C#','Python','HTML', 'CSS', 'JavaScript'].map((tech) => (
-                  <div key={tech} className="text-4xl text-primary">{tech}</div>
+              <div className="flex flex-wrap justify-center gap-4">
+                {['C#', 'Python', 'HTML', 'CSS', 'JavaScript'].map((tech) => (
+                  <div key={tech} className="text-xl bg-primary/10 text-primary px-3 py-1 rounded-full">{tech}</div>
                 ))}
               </div>
             </section>
@@ -140,8 +141,12 @@ export default function Portfolio() {
             <div className="container mx-auto px-4 text-center">
               <p className="mb-4">&copy; 2024 Ander507. All rights reserved.</p>
               <div className="flex justify-center space-x-4">
-                <a href="https://github.com/Ander507" target='_blank' className="hover:text-primary transition-colors"><Github className="h-6 w-6" /></a>
-                <a href="https://x.com/ander507_" target='_blank' className="hover:text-primary transition-colors"><Twitter className="h-6 w-6" /></a>
+                <a href="https://github.com/Ander507" target='_blank' rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                  <Github className="h-6 w-6" />
+                </a>
+                <a href="https://x.com/ander507_" target='_blank' rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                  <Twitter className="h-6 w-6" />
+                </a>
               </div>
             </div>
           </footer>

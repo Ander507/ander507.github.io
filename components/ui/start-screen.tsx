@@ -14,7 +14,7 @@ export function StartScreen() {
       index++
       if (index > finalText.length) {
         clearInterval(intervalId)
-        setTimeout(() => setIsVisible(false), 3000) // Updated delay to 3000ms
+        setTimeout(() => setIsVisible(false), 3000)
       }
     }, 300)
 
