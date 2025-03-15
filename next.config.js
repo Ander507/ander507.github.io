@@ -1,12 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  output: "export",
   images: {
-    unoptimized: true,
+    unoptimized: true, // Important for GitHub Pages
   },
-  basePath: '',
-  trailingSlash: true,
-}
+  basePath: "/ander507.github.io", // Use your repo name
+};
 
-module.exports = nextConfig
-
+module.exports = nextConfig;
