@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  /* Base Styles - Adapted from your portfolio's purple theme */
+  :root {
+      --bg-primary: #121212;
+      --bg-secondary: #1e1e1e;
+      --bg-tertiary: #252525;
+      --text-primary: #f5f5f5;
+      --text-secondary: #b3b3b3;
+      --accent: #8a2be2; /* Blue Violet */
+      --accent-dark: #6a0dad; /* Dark Violet */
+      --accent-light: #b19cd9; /* Lighter Purple */
+      --border: #333333;
+      --shadow: rgba(0, 0, 0, 0.3);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .weather-container {
+    background-color: var(--bg-secondary);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px var(--shadow);
+    padding: 40px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+    color: var(--accent);
+  }
+
+  .search-box {
+    display: flex;
+    flex-direction: column; /* Stack inputs and button */
+    gap: 10px;
+    margin-bottom: 30px;
+  }
+
+  .search-box input,
+  .search-box select { /* Style for select dropdown */
+    flex-grow: 1;
+    padding: 12px 15px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    -webkit-appearance: none; /* Remove default dropdown arrow */
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f5f5f5%22%20d%3D%22M287%2C197.3L159.3%2C69.7c-3.2-3.2-8.3-3.2-11.6%2C0L5.4%2C197.3c-3.2%2C3.2-3.2%2C8.3%2C0%2C11.6l11.6%2C11.6c3.2%2C3.2%2C8.3%2C3.2%2C11.6%2C0l120.7-120.7l120.7%2C120.7c3.2%2C3.2%2C8.3%2C3.2%2C11.6%2C0l11.6-11.6C290.2%2C205.6%2C290.2%2C200.5%2C287%2C197.3z%22%2F%3E%3C%2Fsvg%3E'); /* Custom arrow */
+    background-repeat: no-repeat;
+    background-position: right 10px top 50%;
+    background-size: 12px auto;
+  }
+
+  .search-box input:focus,
+  .search-box select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+  }
+
+  .search-box button {
+    padding: 12px 20px;
+    background-color: var(--accent);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+  }
+
+  .search-box button:hover {
+    background-color: var(--accent-dark);
+    transform: translateY(-2px);
+  }
+
+  .weather-info {
+    display: none; /* Hidden by default */
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+  }
+
+  .weather-info h2 {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+  }
+
+  .weather-info .location {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+  }
+
+  .weather-info .temperature {
+    font-size: 4rem;
+    font-weight: bold;
+    color: var(--accent-light);
+    margin-bottom: 15px;
+  }
+
+  .weather-info .description {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    text-transform: capitalize;
+  }
+
+  .details {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .detail-item i {
+    font-size: 1.8rem;
+    color: var(--accent);
+  }
+
+  .detail-item p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  .error-message {
+    color: #ff6b6b;
+    margin-top: 20px;
+    font-size: 1.1rem;
+    display: none; /* Hidden by default */
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    .weather-container {
+      padding: 25px;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    .search-box {
+      flex-direction: column;
+    }
+    .weather-info .location {
+      font-size: 1.5rem;
+    }
+    .weather-info .temperature {
+      font-size: 3rem;
+    }
+    .weather-info .description {
+      font-size: 1.2rem;
+    }
+    .details {
+      flex-direction: column;
+      gap: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="weather-container">
+  <h1>Weather Dashboard</h1>
+  <div class="search-box">
+    <select id="country-select">
+      <!-- Options will be populated by JavaScript -->
+    </select>
+    <input type="text" id="city-input" placeholder="Enter city name">
+    <button id="search-button">Get Weather</button>
+  </div>
+
+  <div id="weather-info" class="weather-info">
+    <h2 class="location"><span id="city-name"></span>, <span id="country-name"></span></h2>
+    <p class="temperature"><span id="temperature"></span>°C</p>
+    <p class="description"><img id="weather-icon" src="/placeholder.svg" alt="Weather icon" style="vertical-align: middle; width: 50px; height: 50px; display: inline-block;"> <span id="weather-description"></span></p>
+    <div class="details">
+      <div class="detail-item">
+        <i class="fas fa-tint"></i>
+        <p>Humidity: <span id="humidity"></span>%</p>
+      </div>
+      <div class="detail-item">
+        <i class="fas fa-wind"></i>
+        <p>Wind Speed: <span id="wind-speed"></span> m/s</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="error-message" class="error-message">
+    City not found or an error occurred. Please try again.
+  </div>
+</div>
+
+<script>
+  const API_KEY = 'b1d1a8c4aa89e0c5fa586d34edd8c491'; // Your OpenWeatherMap API key
+  const weatherApiUrl = 'https://api.openweathermap.org/data/2.5/weather';
+
+  // EU country codes and their full names
+  const EU_COUNTRIES = {
+    'AT': 'Austria', 'BE': 'Belgium', 'BG': 'Bulgaria', 'HR': 'Croatia',
+    'CY': 'Cyprus', 'CZ': 'Czech Republic', 'DK': 'Denmark', 'EE': 'Estonia',
+    'FI': 'Finland', 'FR': 'France', 'DE': 'Germany', 'GR': 'Greece',
+    'HU': 'Hungary', 'IE': 'Ireland', 'IT': 'Italy', 'LV': 'Latvia',
+    'LT': 'Lithuania', 'LU': 'Luxembourg', 'MT': 'Malta', 'NL': 'Netherlands',
+    'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'SK': 'Slovakia',
+    'SI': 'Slovenia', 'ES': 'Spain', 'SE': 'Sweden'
+  };
+
+  const countrySelect = document.getElementById('country-select');
+  const cityInput = document.getElementById('city-input');
+  const searchButton = document.getElementById('search-button');
+  const weatherInfoDiv = document.getElementById('weather-info');
+  const errorMessageDiv = document.getElementById('error-message');
+
+  const cityNameElem = document.getElementById('city-name');
+  const countryNameElem = document.getElementById('country-name');
+  const temperatureElem = document.getElementById('temperature');
+  const weatherDescriptionElem = document.getElementById('weather-description');
+  const weatherIconElem = document.getElementById('weather-icon');
+  const humidityElem = document.getElementById('humidity');
+  const windSpeedElem = document.getElementById('wind-speed');
+
+  // Populate the country dropdown
+  function populateCountryDropdown() {
+    for (const code in EU_COUNTRIES) {
+      const option = document.createElement('option');
+      option.value = code;
+      option.textContent = EU_COUNTRIES[code];
+      countrySelect.appendChild(option);
+    }
+    // Optionally set a default selected country, e.g., Denmark
+    countrySelect.value = 'DK';
+  }
+
+  // Call populate function on load
+  document.addEventListener('DOMContentLoaded', populateCountryDropdown);
+
+  searchButton.addEventListener('click', fetchWeather);
+  cityInput.addEventListener('keypress', (event) => {
+    if (event.key === 'Enter') {
+      fetchWeather();
+    }
+  });
+
+  async function fetchWeather() {
+    const city = cityInput.value.trim();
+    const countryCode = countrySelect.value; // Get selected country code
+
+    if (!city) {
+      displayError('Please enter a city name.');
+      return;
+    }
+    if (!countryCode) {
+      displayError('Please select a country.');
+      return;
+    }
+
+    // Hide previous info/errors
+    weatherInfoDiv.style.display = 'none';
+    errorMessageDiv.style.display = 'none';
+    cityInput.disabled = true;
+    countrySelect.disabled = true;
+    searchButton.disabled = true;
+    searchButton.textContent = 'Loading...';
+
+    try {
+      // Construct query with city and country code
+      const response = await fetch(`${weatherApiUrl}?q=${city},${countryCode}&appid=${API_KEY}&units=metric`);
+      const data = await response.json();
+
+      if (response.ok) {
+        displayWeather(data);
+      } else {
+        displayError(data.message || 'City not found in the selected country. Please check the spelling.');
+      }
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+      displayError('Failed to fetch weather data. Please try again later.');
+    } finally {
+      cityInput.disabled = false;
+      countrySelect.disabled = false;
+      searchButton.disabled = false;
+      searchButton.textContent = 'Get Weather';
+    }
+  }
+
+  function displayWeather(data) {
+    cityNameElem.textContent = data.name;
+    countryNameElem.textContent = EU_COUNTRIES[data.sys.country] || data.sys.country; // Display full country name
+    temperatureElem.textContent = Math.round(data.main.temp);
+    weatherDescriptionElem.textContent = data.weather[0].description;
+    weatherIconElem.src = `http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+    weatherIconElem.alt = data.weather[0].description;
+    humidityElem.textContent = data.main.humidity;
+    windSpeedElem.textContent = data.wind.speed;
+
+    weatherInfoDiv.style.display = 'block';
+  }
+
+  function displayError(message) {
+    errorMessageDiv.textContent = message;
+    errorMessageDiv.style.display = 'block';
+  }
+</script>
+</body>
+</html>

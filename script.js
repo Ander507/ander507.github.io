@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
           setTimeout(() => {
             startScreen.style.display = "none"
           }, 500)
-        }, 3000)
+        }, 100)
       }
     }, 300)
   

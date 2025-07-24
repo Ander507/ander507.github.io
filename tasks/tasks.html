@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trello-like Task Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1e1e1e;
+            --bg-tertiary: #252525;
+            --text-primary: #f5f5f5;
+            --text-secondary: #b3b3b3;
+            --accent: #8a2be2;
+            --accent-dark: #6a0dad;
+            --accent-light: #b19cd9;
+            --border: #333333;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --success: #8a2be2;
+            --danger: #dc3545;
+            --info: #007bff;
+
+            --trello-header-bg: rgba(0, 0, 0, 0.3);
+            --trello-list-bg: rgba(36, 36, 36, 0.8);
+            --trello-card-bg: #2d2d2d;
+            --trello-button-bg: rgba(255, 255, 255, 0.1);
+            --trello-button-hover-bg: rgba(255, 255, 255, 0.2);
+            --trello-text-light: #e0e0e0;
+            --trello-dark-gray: #0a0a0a;
+            --trello-card-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--trello-dark-gray);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .board-header {
+            background-color: var(--trello-header-bg);
+            backdrop-filter: blur(5px);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--trello-text-light);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        .board-header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .board-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.2s ease;
+        }
+
+        .board-title:hover {
+            background-color: var(--trello-button-bg);
+        }
+
+        .board-dropdown {
+            position: relative;
+        }
+
+        .board-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--bg-secondary);
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 5px;
+            padding: 10px 0;
+            top: 100%;
+            left: 0;
+        }
+
+        .board-dropdown-content a,
+        .board-dropdown-content button {
+            color: var(--text-primary);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .board-dropdown-content a:hover,
+        .board-dropdown-content button:hover {
+            background-color: var(--bg-tertiary);
+        }
+
+        .board-dropdown:hover .board-dropdown-content {
+            display: block;
+        }
+
+        .board-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .board-header-icon-btn {
+            background-color: var(--trello-button-bg);
+            color: var(--trello-text-light);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .board-header-icon-btn:hover {
+            background-color: var(--trello-button-hover-bg);
+        }
+
+        .board-header-icon-btn i {
+            margin-right: 5px;
+        }
+
+        .board-header-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--bg-primary);
+        }
+
+        .main-content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .dashboard-view {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            display: none;
+        }
+        .dashboard-view.active {
+            display: block;
+        }
+
+        .dashboard-section {
+            margin-bottom: 40px;
+        }
+
+        .dashboard-section h2 {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dashboard-section h2 i {
+            color: var(--accent);
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .board-card {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            background-size: cover;
+            background-position: center;
+        }
+
+        .board-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .board-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .board-card-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-grow: 1;
+        }
+
+        .board-card h3 {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .board-card .star-icon {
+            color: #666;
+            font-size: 1.2rem;
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+        .board-card .star-icon:hover {
+            transform: scale(1.2);
+            color: #999;
+        }
+        .board-card .star-icon.starred {
+            color: #ffd700;
+        }
+
+        .create-board-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: background-color 0.2s ease;
+        }
+        .create-board-card:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .workspace-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .workspace-actions button {
+            background-color: var(--trello-button-bg);
+            color: var(--trello-text-light);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+        }
+        .workspace-actions button:hover {
+            background-color: var(--trello-button-hover-bg);
+        }
+        .workspace-actions button i {
+            margin-right: 5px;
+        }
+
+        .board-view {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            align-items: flex-start;
+            background-color: var(--bg-primary);
+            display: none;
+        }
+        .board-view.active {
+            display: flex;
+        }
+        .board-view[data-background] {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .board-view[data-background]::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 0;
+        }
+
+        .task-list-column {
+            flex-shrink: 0;
+            width: 270px;
+            background-color: var(--trello-list-bg);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 100px);
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 5px;
+        }
+
+        .list-header h2 {
+            font-size: 1.1rem;
+            color: var(--trello-text-light);
+            font-weight: 600;
+            flex-grow: 1;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+        }
+
+        .list-header h2:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .list-options-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+        }
+
+        .list-options-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .task-list {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-bottom: 10px;
+            overflow-y: auto;
+        }
+
+        .task-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .task-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .task-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .task-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .task-card {
+            background-color: var(--trello-card-bg);
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+            cursor: grab;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            position: relative;
+        }
+
+        .task-card:hover {
+            background-color: #3a3a3a;
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .task-card h3 {
+            font-size: 0.95rem;
+            color: var(--trello-text-light);
+            font-weight: 500;
+            word-wrap: break-word;
+        }
+
+        .task-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .task-card-meta i {
+            margin-right: 3px;
+        }
+
+        .task-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 5px;
+        }
+
+        .task-tag {
+            background-color: rgba(138, 43, 226, 0.2);
+            color: var(--accent-light);
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .add-card-area, .add-list-area {
+            margin-top: 10px;
+        }
+
+        .add-card-btn, .add-list-btn {
+            width: 100%;
+            padding: 8px 10px;
+            background-color: var(--trello-button-bg);
+            color: var(--trello-text-light);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            transition: background-color 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .add-card-btn:hover, .add-list-btn:hover {
+            background-color: var(--trello-button-hover-bg);
+        }
+
+        .add-card-btn i, .add-list-btn i {
+            margin-right: 5px;
+        }
+
+        .add-card-form, .add-list-form {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .add-card-form.active, .add-list-form.active {
+            display: flex;
+        }
+
+        .add-card-form input[type="text"],
+        .add-card-form textarea,
+        .add-list-form input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            background-color: var(--trello-card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .add-card-form input[type="text"]:focus,
+        .add-card-form textarea:focus,
+        .add-list-form input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+        }
+
+        .add-card-form textarea {
+            resize: vertical;
+        }
+
+        .add-card-form .form-actions, .add-list-form .form-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-card-form .form-actions button, .add-list-form .form-actions button {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .add-card-form .form-actions .add-btn, .add-list-form .form-actions .add-btn {
+            background-color: var(--success);
+            color: white;
+            border: none;
+        }
+
+        .add-card-form .form-actions .add-btn:hover, .add-list-form .form-actions .add-btn:hover {
+            background-color: var(--accent-dark);
+        }
+
+        .add-card-form .form-actions .cancel-btn, .add-list-form .form-actions .cancel-btn {
+            background: none;
+            color: var(--text-secondary);
+            border: none;
+        }
+
+        .add-card-form .form-actions .cancel-btn:hover, .add-list-form .form-actions .cancel-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .add-list-column {
+            flex-shrink: 0;
+            width: 270px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .add-list-column:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .tag-dropdown {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .tag-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--bg-secondary);
+            min-width: 100%;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 5px;
+            padding: 5px 0;
+            top: 100%;
+            left: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .tag-dropdown.active .tag-dropdown-content {
+            display: block;
+        }
+
+        .tag-dropdown-item {
+            color: var(--text-primary);
+            padding: 8px 12px;
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .tag-dropdown-item:hover {
+            background-color: var(--bg-tertiary);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--bg-secondary);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+            width: 90%;
+            max-width: 500px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-content h2 {
+            font-size: 1.8rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-content label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .modal-content input[type="text"],
+        .modal-content textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .modal-content input[type="text"]:focus,
+        .modal-content textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+        }
+
+        .modal-content textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        .modal-buttons .confirm-btn {
+            background-color: var(--success);
+            color: white;
+            border: none;
+        }
+
+        .modal-buttons .confirm-btn:hover {
+            background-color: var(--accent-dark);
+            transform: translateY(-2px);
+        }
+
+        .modal-buttons .cancel-btn {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .modal-buttons .cancel-btn:hover {
+            background-color: #3a3a3a;
+            transform: translateY(-2px);
+        }
+
+        .modal-buttons .delete-confirm-btn {
+            background-color: var(--danger);
+            color: var(--bg-primary);
+            border: none;
+        }
+
+        .modal-buttons .delete-confirm-btn:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .board-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .board-header-right {
+                width: 100%;
+                justify-content: space-around;
+            }
+            .board-container {
+                flex-direction: column;
+                overflow-x: hidden;
+            }
+            .task-list-column, .add-list-column {
+                width: 100%;
+                max-height: unset;
+            }
+            .modal-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="board-header">
+        <div class="board-header-left">
+            <button class="board-header-icon-btn" id="back-to-boards-btn" style="display: none;"><i class="fas fa-arrow-left"></i> Boards</button>
+            <div class="board-dropdown" id="board-title-dropdown">
+                <span class="board-title" id="current-board-name">Loading... <i class="fas fa-chevron-down"></i></span>
+                <div class="board-dropdown-content" id="board-dropdown-content">
+                    <button onclick="openCreateBoardModal()"><i class="fas fa-plus"></i> Create New Board</button>
+                </div>
+            </div>
+            <div class="progress-container" id="progress-container" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <span class="progress-text" id="progress-text">0/0 tasks done</span>
+            </div>
+        </div>
+
+        </div>
+        <div class="board-header-right">
+            <button class="board-header-icon-btn" onclick="resetAllBoards()"><i class="fas fa-redo"></i> Reset Boards</button>
+        </div>
+    </header>
+
+    <div class="main-content-wrapper">
+        <div id="dashboard-view" class="dashboard-view">
+            <div class="dashboard-section">
+                <h2><i class="fas fa-star"></i> Starred boards</h2>
+                <div class="board-grid" id="starred-boards-grid">
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h2><i class="fas fa-clock"></i> Recently viewed</h2>
+                <div class="board-grid" id="recently-viewed-grid">
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h2>YOUR BOARDS</h2>
+                <div class="board-grid" id="your-workspaces-grid">
+                    <div class="board-card create-board-card" onclick="openCreateBoardModal()">
+                        <h3>Create new board</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main class="board-view" id="board-view">
+            <div class="add-list-column" id="add-list-column">
+                <button class="add-list-btn" onclick="toggleAddListForm()">
+                    <i class="fas fa-plus"></i> Add another list
+                </button>
+                <div class="add-list-form" id="add-list-form">
+                    <input type="text" class="new-list-name" placeholder="Enter list title...">
+                    <div class="form-actions">
+                        <button class="add-btn" onclick="addCategory()">Add list</button>
+                        <button class="cancel-btn" onclick="toggleAddListForm()"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="edit-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Edit Task</h2>
+            <label for="edit-title">Title:</label>
+            <input type="text" id="edit-title">
+            <label for="edit-description">Description:</label>
+            <textarea id="edit-description"></textarea>
+            <label for="edit-tags">Tags:</label>
+            <div class="tag-dropdown" id="edit-tag-dropdown">
+                <input type="text" id="edit-tags" placeholder="Type to add tags or select existing ones">
+                <div class="tag-dropdown-content" id="edit-tag-dropdown-content">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="confirm-btn" id="save-edit-btn">Save Changes</button>
+                <button class="cancel-btn" id="cancel-edit-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Confirm Deletion</h2>
+            <p>Are you sure you want to delete "<span id="delete-task-title"></span>"? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button class="delete-confirm-btn" id="confirm-delete-btn">Delete</button>
+                <button class="cancel-btn" id="cancel-delete-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="create-board-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Create New Board</h2>
+            <label for="new-board-name">Board Name:</label>
+            <input type="text" id="new-board-name" placeholder="Enter board name">
+            <label for="new-board-background">Background (color or image URL):</label>
+            <input type="text" id="new-board-background" placeholder="#131313 or URL">
+            <div class="modal-buttons">
+                <button class="confirm-btn" id="create-board-btn">Create Board</button>
+                <button class="cancel-btn" onclick="closeModal('create-board-modal-overlay')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const currentBoardNameElem = document.getElementById('current-board-name');
+        const boardTitleDropdown = document.getElementById('board-title-dropdown');
+        const boardDropdownContent = document.getElementById('board-dropdown-content');
+        const backToBoardsBtn = document.getElementById('back-to-boards-btn');
+
+        const dashboardView = document.getElementById('dashboard-view');
+        const starredBoardsGrid = document.getElementById('starred-boards-grid');
+        const recentlyViewedGrid = document.getElementById('recently-viewed-grid');
+        const yourWorkspacesGrid = document.getElementById('your-workspaces-grid');
+
+        const boardView = document.getElementById('board-view');
+        const addListColumn = document.getElementById('add-list-column');
+        const addListForm = document.getElementById('add-list-form');
+        const newListInput = addListForm.querySelector('.new-list-name');
+
+        const editModalOverlay = document.getElementById('edit-modal-overlay');
+        const editTitleInput = document.getElementById('edit-title');
+        const editDescriptionInput = document.getElementById('edit-description');
+        const editTagsInput = document.getElementById('edit-tags');
+        const editTagDropdown = document.getElementById('edit-tag-dropdown');
+        const editTagDropdownContent = document.getElementById('edit-tag-dropdown-content');
+        const saveEditBtn = document.getElementById('save-edit-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+        const deleteModalOverlay = document.getElementById('delete-modal-overlay');
+        const deleteTaskTitleElem = document.getElementById('delete-task-title');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+        const createBoardModalOverlay = document.getElementById('create-board-modal-overlay');
+        const newBoardNameInput = document.getElementById('new-board-name');
+        const newBoardBackgroundInput = document.getElementById('new-board-background');
+        const createBoardBtn = document.getElementById('create-board-btn');
+
+        let boards = [];
+        let currentBoardId = null;
+        let currentView = 'dashboard';
+        let currentEditTaskId = null;
+        let currentDeleteTaskId = null;
+        let allTags = new Set(); // Global tag storage
+
+        function saveState() {
+            const state = {
+                boards: boards,
+                currentBoardId: currentBoardId,
+                currentView: currentView,
+                allTags: Array.from(allTags)
+            };
+            localStorage.setItem('trelloState', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const storedState = localStorage.getItem('trelloState');
+            if (storedState) {
+                const state = JSON.parse(storedState);
+                boards = state.boards || [];
+                currentBoardId = state.currentBoardId;
+                currentView = state.currentView || 'dashboard';
+                allTags = new Set(state.allTags || []);
+            }
+
+            if (!currentBoardId && boards.length > 0) {
+                currentBoardId = boards[0].id;
+            }
+        }
+
+        function getCurrentBoard() {
+            return boards.find(board => board.id === currentBoardId);
+        }
+
+        function createBoard(name, background = '#131313', starred = false) {
+            const newBoard = {
+                id: `board-${Date.now()}`,
+                name: name,
+                background: background,
+                starred: starred,
+                lastViewed: Date.now(),
+                categories: ['To Do', 'In Progress', 'Done'],
+                tasks: []
+            };
+            boards.push(newBoard);
+            saveState();
+            return newBoard;
+        }
+
+        function toggleBoardStar(boardId, event) {
+            event.stopPropagation();
+            const board = boards.find(b => b.id === boardId);
+            if (board) {
+                board.starred = !board.starred;
+                saveState();
+                renderAll();
+            }
+        }
+
+        function switchBoard(boardId) {
+            currentBoardId = boardId;
+            currentView = 'board';
+            const board = getCurrentBoard();
+            if (board) {
+                board.lastViewed = Date.now();
+            }
+            saveState();
+            renderAll();
+        }
+
+        function renderBoardsHeader() {
+            if (currentView === 'dashboard') {
+                currentBoardNameElem.textContent = 'Boards';
+                boardTitleDropdown.style.display = 'block';
+                backToBoardsBtn.style.display = 'none';
+                const existingChevron = currentBoardNameElem.querySelector('.fas.fa-chevron-down');
+                if (existingChevron) {
+                    existingChevron.remove();
+                }
+            } else {
+                const currentBoard = getCurrentBoard();
+                currentBoardNameElem.textContent = `${currentBoard ? currentBoard.name : 'Board'} `;
+                const chevron = document.createElement('i');
+                chevron.className = 'fas fa-chevron-down';
+                currentBoardNameElem.appendChild(chevron);
+                boardTitleDropdown.style.display = 'block';
+                backToBoardsBtn.style.display = 'block';
+            }
+
+            boardDropdownContent.innerHTML = '';
+            boards.forEach(board => {
+                const boardOption = document.createElement('button');
+                boardOption.textContent = board.name;
+                boardOption.onclick = () => switchBoard(board.id);
+                boardDropdownContent.appendChild(boardOption);
+            });
+            const createBoardButton = document.createElement('button');
+            createBoardButton.innerHTML = '<i class="fas fa-plus"></i> Create New Board';
+            createBoardButton.onclick = openCreateBoardModal;
+            boardDropdownContent.appendChild(createBoardButton);
+        }
+
+        backToBoardsBtn.addEventListener('click', () => {
+            currentView = 'dashboard';
+            saveState();
+            renderAll();
+        });
+
+        createBoardBtn.addEventListener('click', () => {
+            const boardName = newBoardNameInput.value.trim();
+            const boardBackground = newBoardBackgroundInput.value.trim();
+            if (boardName) {
+                const newBoard = createBoard(boardName, boardBackground || '#131313');
+                switchBoard(newBoard.id);
+                newBoardNameInput.value = '';
+                newBoardBackgroundInput.value = '';
+                closeModal('create-board-modal-overlay');
+            } else {
+                alert('Board name cannot be empty!');
+            }
+        });
+
+        function openCreateBoardModal() {
+            newBoardNameInput.value = '';
+            newBoardBackgroundInput.value = '';
+            openModal('create-board-modal-overlay');
+        }
+
+        function renderDashboard() {
+            dashboardView.classList.add('active');
+            boardView.classList.remove('active');
+            boardView.style.backgroundImage = '';
+
+            starredBoardsGrid.innerHTML = '';
+            recentlyViewedGrid.innerHTML = '';
+            yourWorkspacesGrid.innerHTML = '';
+
+            const sortedBoards = [...boards].sort((a, b) => b.lastViewed - a.lastViewed);
+            const starredBoards = boards.filter(board => board.starred);
+
+            starredBoards.forEach(board => {
+                starredBoardsGrid.appendChild(createBoardCardElement(board));
+            });
+
+            const recentBoards = sortedBoards.filter(board => !board.starred).slice(0, 4);
+            recentBoards.forEach(board => {
+                recentlyViewedGrid.appendChild(createBoardCardElement(board));
+            });
+
+            boards.forEach(board => {
+                yourWorkspacesGrid.appendChild(createBoardCardElement(board));
+            });
+
+            const createNewBoardCard = document.createElement('div');
+            createNewBoardCard.className = 'board-card create-board-card';
+            createNewBoardCard.onclick = openCreateBoardModal;
+            createNewBoardCard.innerHTML = `<h3>Create new board</h3>`;
+            yourWorkspacesGrid.appendChild(createNewBoardCard);
+        }
+
+        function createBoardCardElement(board) {
+            const boardCard = document.createElement('div');
+            boardCard.className = 'board-card';
+            boardCard.onclick = () => switchBoard(board.id);
+
+            if (board.background.startsWith('#') || board.background.startsWith('linear-gradient')) {
+                boardCard.style.backgroundColor = board.background;
+            } else {
+                boardCard.style.backgroundImage = `url('${board.background}')`;
+            }
+
+            boardCard.innerHTML = `
+                <div class="board-card-content">
+                    <h3>${board.name}</h3>
+                    <i class="fas fa-star star-icon ${board.starred ? 'starred' : ''}" 
+                       onclick="toggleBoardStar('${board.id}', event)"></i>
+                </div>
+            `;
+            return boardCard;
+        }
+
+        function renderCategories() {
+            const currentBoard = getCurrentBoard();
+            if (!currentBoard) return;
+
+            const existingColumns = boardView.querySelectorAll('.task-list-column');
+            existingColumns.forEach(col => col.remove());
+
+            currentBoard.categories.forEach(category => {
+                const columnId = `${category.toLowerCase().replace(/\s/g, '-')}-column`;
+                const listId = `${category.toLowerCase().replace(/\s/g, '-')}-list`;
+
+                const taskColumn = document.createElement('div');
+                taskColumn.className = 'task-list-column';
+                taskColumn.id = columnId;
+                taskColumn.setAttribute('ondragover', 'allowDrop(event)');
+                taskColumn.setAttribute('ondrop', 'drop(event)');
+                taskColumn.setAttribute('ondragleave', 'dragLeave(event)');
+                taskColumn.innerHTML = `
+                    <div class="list-header">
+                        <h2 onclick="renameCategoryPrompt('${category}')">${category}</h2>
+                        <button class="list-options-btn" onclick="showListOptions('${category}')"><i class="fas fa-ellipsis-h"></i></button>
+                    </div>
+                    <div class="task-list" id="${listId}"></div>
+                    <div class="add-card-area">
+                        <button class="add-card-btn" onclick="toggleAddCardForm('${listId}')">
+                            <i class="fas fa-plus"></i> Add a card
+                        </button>
+                        <div class="add-card-form" id="form-${listId}">
+                            <input type="text" class="new-card-title" placeholder="Enter a title for this card...">
+                            <textarea class="new-card-description" placeholder="Add a description (optional)"></textarea>
+                            <div class="tag-dropdown">
+                                <input type="text" class="new-card-tags" placeholder="Type to add tags or select existing ones">
+                                <div class="tag-dropdown-content"></div>
+                            </div>
+                            <div class="form-actions">
+                                <button class="add-btn" onclick="addTask('${category}', '${listId}')">Add Card</button>
+                                <button class="cancel-btn" onclick="toggleAddCardForm('${listId}')"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                boardView.insertBefore(taskColumn, addListColumn);
+                setupTagDropdown(taskColumn.querySelector('.tag-dropdown'));
+            });
+        }
+
+        function setupTagDropdown(tagDropdownElement) {
+            const input = tagDropdownElement.querySelector('input');
+            const dropdown = tagDropdownElement.querySelector('.tag-dropdown-content');
+            
+            input.addEventListener('focus', () => {
+                updateTagDropdown(dropdown, input);
+                tagDropdownElement.classList.add('active');
+            });
+
+            input.addEventListener('input', () => {
+                updateTagDropdown(dropdown, input);
+            });
+
+            input.addEventListener('blur', (e) => {
+                setTimeout(() => {
+                    tagDropdownElement.classList.remove('active');
+                }, 200);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const newTag = input.value.trim();
+                    if (newTag) {
+                        addTagToInput(input, newTag);
+                        allTags.add(newTag);
+                        saveState();
+                    }
+                }
+            });
+        }
+
+        function updateTagDropdown(dropdown, input) {
+            dropdown.innerHTML = '';
+            const inputValue = input.value.toLowerCase();
+            const currentTags = input.value.split(',').map(tag => tag.trim());
+            
+            Array.from(allTags).forEach(tag => {
+                if (tag.toLowerCase().includes(inputValue) && !currentTags.includes(tag)) {
+                    const item = document.createElement('div');
+                    item.className = 'tag-dropdown-item';
+                    item.textContent = tag;
+                    item.onclick = () => addTagToInput(input, tag);
+                    dropdown.appendChild(item);
+                }
+            });
+        }
+
+        function addTagToInput(input, tag) {
+            const currentTags = input.value.split(',').map(t => t.trim()).filter(t => t !== '');
+            if (!currentTags.includes(tag)) {
+                currentTags.push(tag);
+                input.value = currentTags.join(', ');
+            }
+        }
+
+        function toggleAddListForm() {
+            addListForm.classList.toggle('active');
+            addListColumn.querySelector('.add-list-btn').style.display = addListForm.classList.contains('active') ? 'none' : 'block';
+            if (addListForm.classList.contains('active')) {
+                newListInput.focus();
+            } else {
+                newListInput.value = '';
+            }
+        }
+
+        function addCategory() {
+            const currentBoard = getCurrentBoard();
+            if (!currentBoard) return;
+
+            const newCategoryName = newListInput.value.trim();
+            if (newCategoryName && !currentBoard.categories.includes(newCategoryName)) {
+                currentBoard.categories.push(newCategoryName);
+                saveState();
+                renderAll();
+                toggleAddListForm();
+            } else if (newCategoryName) {
+                alert('List with this name already exists!');
+            } else {
+                alert('List name cannot be empty!');
+            }
+        }
+
+        function showListOptions(categoryName) {
+            const action = prompt(`Options for "${categoryName}":\n1. Rename\n2. Delete\nEnter 1 or 2:`);
+            if (action === '1') {
+                renameCategoryPrompt(categoryName);
+            } else if (action === '2') {
+                deleteCategory(categoryName);
+            }
+        }
+
+        function deleteCategory(categoryToDelete) {
+            const currentBoard = getCurrentBoard();
+            if (!currentBoard) return;
+
+            if (currentBoard.categories.length <= 1) {
+                alert('Cannot delete the last list on the board.');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete the list "${categoryToDelete}"? All cards in this list will be moved to the first remaining list.`)) {
+                const firstRemainingCategory = currentBoard.categories.find(cat => cat !== categoryToDelete);
+                currentBoard.categories = currentBoard.categories.filter(cat => cat !== categoryToDelete);
+                currentBoard.tasks.forEach(task => {
+                    if (task.category === categoryToDelete) {
+                        task.category = firstRemainingCategory;
+                    }
+                });
+                saveState();
+                renderAll();
+            }
+        }
+
+        function renameCategoryPrompt(oldName) {
+            const currentBoard = getCurrentBoard();
+            if (!currentBoard) return;
+
+            const newName = prompt(`Rename list "${oldName}" to:`, oldName);
+            if (newName && newName.trim() !== oldName && !currentBoard.categories.includes(newName.trim())) {
+                renameCategory(oldName, newName.trim());
+            } else if (newName && newName.trim() === oldName) {
+                // No change
+            } else if (newName) {
+                alert('New list name is invalid or already exists.');
+            }
+        }
+
+        function renameCategory(oldName, newName) {
+            const currentBoard = getCurrentBoard();
+            if (!currentBoard) return;
+
+            const index = currentBoard.categories.indexOf(oldName);
+            if (index > -1) {
+                currentBoard.categories[index] = newName;
+                currentBoard.tasks.forEach(task => {
+                    if (task.category === oldName) {
+                        task.category = newName;
+                    }
+                });
+                saveState();
+                renderAll();
+            }
+        }
+
+        function renderTasks() {
+            const currentBoard = getCurrentBoard();
+            if (!currentBoard) return;
+
+            currentBoard.categories.forEach(category => {
+                const listId = `${category.toLowerCase().replace(/\s/g, '-')}-list`;
+                const listElem = document.getElementById(listId);
+                if (listElem) {
+                    listElem.innerHTML = '';
+                }
+            });
+
+            currentBoard.tasks.forEach(task => {
+                // Add task tags to global tags
+                if (task.tags) {
+                    task.tags.forEach(tag => allTags.add(tag));
+                }
+
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card';
+                taskCard.setAttribute('draggable', 'true');
+                taskCard.id = `task-${task.id}`;
+                taskCard.innerHTML = `
+                    <h3>${task.title}</h3>
+                    ${task.tags && task.tags.length > 0 ? `
+                        <div class="task-tags">
+                            ${task.tags.map(tag => `<span class="task-tag">${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="task-card-meta">
+                        ${task.checklist ? `<span><i class="fas fa-check-square"></i> ${task.checklist.completed}/${task.checklist.total}</span>` : ''}
+                        ${task.attachments ? `<span><i class="fas fa-paperclip"></i> ${task.attachments}</span>` : ''}
+                        <button class="list-options-btn" onclick="openDeleteModal(${task.id}, event)"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                `;
+                taskCard.addEventListener('dragstart', dragStart);
+                taskCard.addEventListener('click', (event) => {
+                    if (!event.target.closest('.list-options-btn')) {
+                        openEditModal(task.id);
+                    }
+                });
+
+                const targetListId = `${task.category.toLowerCase().replace(/\s/g, '-')}-list`;
+                const targetListElem = document.getElementById(targetListId);
+                if (targetListElem) {
+                    targetListElem.appendChild(taskCard);
+                } else {
+                    const firstCategory = currentBoard.categories[0];
+                    if (firstCategory) {
+                        task.category = firstCategory;
+                        document.getElementById(`${firstCategory.toLowerCase().replace(/\s/g, '-')}-list`).appendChild(taskCard);
+                    }
+                }
+            });
+        }
+
+        function toggleAddCardForm(listId) {
+            const form = document.getElementById(`form-${listId}`);
+            const button = form.previousElementSibling;
+            form.classList.toggle('active');
+            button.style.display = form.classList.contains('active') ? 'none' : 'block';
+
+            if (form.classList.contains('active')) {
+                form.querySelector('.new-card-title').focus();
+            } else {
+                form.querySelector('.new-card-title').value = '';
+                form.querySelector('.new-card-description').value = '';
+                form.querySelector('.new-card-tags').value = '';
+            }
+        }
+
+        function addTask(category, listId) {
+            const currentBoard = getCurrentBoard();
+            if (!currentBoard) return;
+
+            const form = document.getElementById(`form-${listId}`);
+            const titleInput = form.querySelector('.new-card-title');
+            const descriptionInput = form.querySelector('.new-card-description');
+            const tagsInput = form.querySelector('.new-card-tags');
+
+            const title = titleInput.value.trim();
+            const description = descriptionInput.value.trim();
+            const tags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+
+            if (title) {
+                const newTask = {
+                    id: Date.now(),
+                    title: title,
+                    description: description,
+                    category: category,
+                    tags: tags
+                };
+                
+                // Add new tags to global collection
+                tags.forEach(tag => allTags.add(tag));
+                
+                currentBoard.tasks.push(newTask);
+                saveState();
+                renderTasks();
+                toggleAddCardForm(listId);
+            } else {
+                alert('Card title cannot be empty!');
+            }
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function openEditModal(id) {
+            currentEditTaskId = id;
+            const currentBoard = getCurrentBoard();
+            const task = currentBoard ? currentBoard.tasks.find(t => t.id === id) : null;
+            if (task) {
+                editTitleInput.value = task.title;
+                editDescriptionInput.value = task.description;
+                editTagsInput.value = task.tags.join(', ');
+                setupTagDropdown(editTagDropdown);
+                openModal('edit-modal-overlay');
+            }
+        }
+
+        function openDeleteModal(id, event) {
+            event.stopPropagation();
+            currentDeleteTaskId = id;
+            const currentBoard = getCurrentBoard();
+            const task = currentBoard ? currentBoard.tasks.find(t => t.id === id) : null;
+            if (task) {
+                deleteTaskTitleElem.textContent = task.title;
+                openModal('delete-modal-overlay');
+            }
+        }
+
+        cancelEditBtn.addEventListener('click', () => closeModal('edit-modal-overlay'));
+        cancelDeleteBtn.addEventListener('click', () => closeModal('delete-modal-overlay'));
+
+        saveEditBtn.addEventListener('click', () => {
+            const currentBoard = getCurrentBoard();
+            const taskIndex = currentBoard ? currentBoard.tasks.findIndex(task => task.id === currentEditTaskId) : -1;
+            if (taskIndex > -1) {
+                const tags = editTagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+                tags.forEach(tag => allTags.add(tag));
+                
+                currentBoard.tasks[taskIndex].title = editTitleInput.value.trim();
+                currentBoard.tasks[taskIndex].description = editDescriptionInput.value.trim();
+                currentBoard.tasks[taskIndex].tags = tags;
+                saveState();
+                renderTasks();
+                closeModal('edit-modal-overlay');
+            }
+        });
+
+        confirmDeleteBtn.addEventListener('click', () => {
+            const currentBoard = getCurrentBoard();
+            if (currentBoard) {
+                currentBoard.tasks = currentBoard.tasks.filter(task => task.id !== currentDeleteTaskId);
+                saveState();
+                renderTasks();
+                closeModal('delete-modal-overlay');
+            }
+        });
+
+        let draggedTaskId = null;
+
+        function dragStart(event) {
+            draggedTaskId = event.target.id;
+            event.dataTransfer.setData('text/plain', draggedTaskId);
+            event.target.classList.add('dragging');
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+            const targetList = event.target.closest('.task-list');
+            if (targetList) {
+                targetList.closest('.task-list-column').classList.add('drag-over');
+            }
+        }
+
+        function dragLeave(event) {
+            const targetList = event.target.closest('.task-list');
+            if (targetList) {
+                targetList.closest('.task-list-column').classList.remove('drag-over');
+            }
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            const targetList = event.target.closest('.task-list');
+            if (!targetList) return;
+
+            targetList.closest('.task-list-column').classList.remove('drag-over');
+
+            const taskId = event.dataTransfer.getData('text/plain');
+            const taskElement = document.getElementById(taskId);
+            if (!taskElement) return;
+
+            const currentBoard = getCurrentBoard();
+            const taskIndex = currentBoard ? currentBoard.tasks.findIndex(task => `task-${task.id}` === taskId) : -1;
+            if (taskIndex === -1) return;
+
+            const newCategory = targetList.closest('.task-list-column').querySelector('h2').textContent;
+            currentBoard.tasks[taskIndex].category = newCategory;
+
+            const draggableElements = [...targetList.querySelectorAll('.task-card:not(.dragging)')];
+            let afterElement = null;
+            for (let i = 0; i < draggableElements.length; i++) {
+                const rect = draggableElements[i].getBoundingClientRect();
+                if (event.clientY < rect.top + rect.height / 2) {
+                    afterElement = draggableElements[i];
+                    break;
+                }
+            }
+
+            if (afterElement == null) {
+                targetList.appendChild(taskElement);
+            } else {
+                targetList.insertBefore(taskElement, afterElement);
+            }
+
+            const reorderedTasks = [];
+            currentBoard.categories.forEach(cat => {
+                const listElem = document.getElementById(`${cat.toLowerCase().replace(/\s/g, '-')}-list`);
+                if (listElem) {
+                    [...listElem.children].forEach(cardElem => {
+                        const id = parseInt(cardElem.id.replace('task-', ''));
+                        const task = currentBoard.tasks.find(t => t.id === id);
+                        if (task) {
+                            reorderedTasks.push(task);
+                        }
+                    });
+                }
+            });
+            currentBoard.tasks = reorderedTasks;
+
+            saveState();
+            renderTasks();
+        }
+
+        function resetAllBoards() {
+            if (confirm('Are you sure you want to reset all boards? This will delete all your custom boards and tasks and restore the default setup.')) {
+                localStorage.removeItem('trelloState');
+                window.location.reload();
+            }
+        }
+
+        function renderAll() {
+            renderBoardsHeader();
+            if (currentView === 'dashboard') {
+                dashboardView.classList.add('active');
+                boardView.classList.remove('active');
+                renderDashboard();
+            } else {
+                dashboardView.classList.remove('active');
+                boardView.classList.add('active');
+                const currentBoard = getCurrentBoard();
+                if (currentBoard && currentBoard.background && !currentBoard.background.startsWith('#') && !currentBoard.background.startsWith('linear-gradient')) {
+                    boardView.style.backgroundImage = `url('${currentBoard.background}')`;
+                } else {
+                    boardView.style.backgroundImage = '';
+                    boardView.style.backgroundColor = currentBoard?.background || 'var(--bg-primary)';
+                }
+                renderCategories();
+                renderTasks();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            renderAll();
+        });
+    </script>
+</body>
+</html>
