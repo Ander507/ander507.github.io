@@ -74,7 +74,7 @@
     -webkit-appearance: none; /* Remove default dropdown arrow */
     -moz-appearance: none;
     appearance: none;
-    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f5f5f5%22%20d%3D%22M287%2C197.3L159.3%2C69.7c-3.2-3.2-8.3-3.2-11.6%2C0L5.4%2C197.3c-3.2%2C3.2-3.2%2C8.3%2C0%2C11.6l11.6%2C11.6c3.2%2C3.2%2C8.3%2C3.2%2C11.6%2C0l120.7-120.7l120.7%2C120.7c3.2%2C3.2%2C8.3%2C3.2%2C11.6%2C0l11.6-11.6C290.2%2C205.6%2C290.2%2C200.5%2C287%2C197.3z%22%2F%3E%3C%2Fsvg%3E'); /* Custom arrow */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f5f5f5%22%20d%3D%22M287%2069.4L205.9%201.9c-5.1-4.6-12.7-4.3-17.3.8L146.2%2051.1%2080.1%201.9c-5.1-4.6-12.7-4.3-17.3.8L5%2069.4c-4.6%205.1-4.3%2012.7.8%2017.3l23.8%2021.7c5.1%204.6%2012.7%204.3%2017.3-.8l39.1-48.4%2066.1%2049.2c5.1%204.6%2012.7%204.3%2017.3-.8l23.8-21.7c5.1-4.6%205.4-12.2.8-17.3z%22%2F%3E%3C%2Fsvg%3E');
     background-repeat: no-repeat;
     background-position: right 10px top 50%;
     background-size: 12px auto;
@@ -227,8 +227,13 @@
 </div>
 
 <script>
-  const API_KEY = 'b1d1a8c4aa89e0c5fa586d34edd8c491'; // Your OpenWeatherMap API key
-  const weatherApiUrl = 'https://api.openweathermap.org/data/2.5/weather';
+  // NOTE: The API key has been removed from client-side code.
+  // This page now calls a serverless proxy to keep the API key secret.
+  // To use this, deploy the repository to Netlify and add the environment variable OPENWEATHERMAP_API_KEY in Netlify settings.
+  // The serverless function is expected at /.netlify/functions/weather
+
+  const PROXY_URL = '/.netlify/functions/weather'; // Netlify function path. Change if you deploy elsewhere.
+  const weatherApiUrl = PROXY_URL;
 
   // EU country codes and their full names
   const EU_COUNTRIES = {
@@ -299,8 +304,8 @@
     searchButton.textContent = 'Loading...';
 
     try {
-      // Construct query with city and country code
-      const response = await fetch(`${weatherApiUrl}?q=${city},${countryCode}&appid=${API_KEY}&units=metric`);
+      // Call serverless proxy (do not include API key in client)
+      const response = await fetch(`${weatherApiUrl}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(countryCode)}`);
       const data = await response.json();
 
       if (response.ok) {
